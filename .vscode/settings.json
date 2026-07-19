@@ -1,0 +1,10 @@
+{
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/firmware",
+        "--background-index"
+    ],
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "files.associations": {
+        "*.h": "c"
+    }
+}

@@ -1,0 +1,11 @@
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/compile_commands.json
+firmware/managed_components/
+
+**/__pycache__/
+.pytest_cache/
+tests/.pytest_cache/
+
+_tmp/
