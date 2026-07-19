@@ -158,10 +158,55 @@ bool Armband::vibrate(myohw_vibration_type_t type) {
     return writeCommand(&cmd, sizeof(cmd));
 }
 
+bool Armband::setSleepMode(myohw_sleep_mode_t mode) {
+    myohw_command_set_sleep_mode_t cmd{};
+    cmd.header.command = myohw_command_set_sleep_mode;
+    cmd.header.payload_size = sizeof(cmd) - sizeof(cmd.header);
+    cmd.sleep_mode = mode;
+    return writeCommand(&cmd, sizeof(cmd));
+}
+
+bool Armband::userAction(myohw_user_action_type_t type) {
+    myohw_command_user_action_t cmd{};
+    cmd.header.command = myohw_command_user_action;
+    cmd.header.payload_size = sizeof(cmd) - sizeof(cmd.header);
+    cmd.type = type;
+    return writeCommand(&cmd, sizeof(cmd));
+}
+
 bool Armband::subscribeBattery(NimBLERemoteCharacteristic::notify_callback callback) {
     // Standard Bluetooth Battery Service -- NimBLEUUID(uint16_t) expands
     // this against the standard base UUID, not Myo's custom one.
     return subscribeCharacteristic(NimBLEUUID(static_cast<uint16_t>(BatteryService)),
                                     NimBLEUUID(static_cast<uint16_t>(BatteryLevelCharacteristic)),
                                     /*notifications=*/true, callback);
+}
+
+bool Armband::subscribeEmg(NimBLERemoteCharacteristic::notify_callback callback) {
+    static constexpr myohw_services kEmgCharacteristics[] = {
+        EmgData0Characteristic,
+        EmgData1Characteristic,
+        EmgData2Characteristic,
+        EmgData3Characteristic,
+    };
+
+    const NimBLEUUID service_uuid = myo_uuid(EmgDataService);
+    bool all_ok = true;
+    for (myohw_services chr : kEmgCharacteristics) {
+        if (!subscribeCharacteristic(service_uuid, myo_uuid(chr), /*notifications=*/true, callback)) {
+            all_ok = false;
+        }
+    }
+    return all_ok;
+}
+
+bool Armband::subscribeImu(NimBLERemoteCharacteristic::notify_callback callback) {
+    return subscribeCharacteristic(myo_uuid(ImuDataService), myo_uuid(IMUDataCharacteristic),
+                                    /*notifications=*/true, callback);
+}
+
+bool Armband::subscribeGesture(NimBLERemoteCharacteristic::notify_callback callback) {
+    // Indicate, not notify: ClassifierEventCharacteristic is indicate-only.
+    return subscribeCharacteristic(myo_uuid(ClassifierService), myo_uuid(ClassifierEventCharacteristic),
+                                    /*notifications=*/false, callback);
 }

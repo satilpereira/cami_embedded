@@ -5,9 +5,10 @@
 #include "myo_bluetooth.h"
 
 // Central-role BLE client for a single Myo armband (Thalmic Labs).
-// Steps 1-3 of docs/plans/myo-library-migration.md: scan + connect,
-// synchronous device info / firmware version reads, and unlock/mode/
-// vibrate commands.
+// Steps 1-8 of docs/plans/myo-library-migration.md: scan + connect,
+// synchronous device info / firmware version reads, unlock/mode/vibrate/
+// sleep-mode/user-action commands, and battery/EMG/IMU/gesture
+// subscriptions.
 class Armband {
 public:
     // Scans for a Myo armband (retrying the scan window until one is
@@ -31,10 +32,42 @@ public:
                  myohw_classifier_mode_t classifier_mode);
     bool vibrate(myohw_vibration_type_t type);
 
+    // Overrides the Myo's inactivity auto-sleep. never_sleep keeps it awake
+    // indefinitely (needed for continuous streaming); normal restores the
+    // default sleep-after-inactivity behavior.
+    bool setSleepMode(myohw_sleep_mode_t mode);
+
+    // Tells the Myo a user action was recognized/confirmed, e.g. to
+    // trigger its own UI feedback for an app-level event. Rarely needed
+    // directly; included for API completeness with the original library.
+    bool userAction(myohw_user_action_type_t type = myohw_user_action_single);
+
     // Battery Service is a standard Bluetooth service (not one of Myo's
     // custom ones). Subscribes to battery level notifications. Returns
     // false if not connected or the characteristic doesn't support notify.
     bool subscribeBattery(NimBLERemoteCharacteristic::notify_callback callback);
+
+    // Subscribes to all 4 raw EMG characteristics (EmgDataService), each
+    // delivering a myohw_emg_data_t (2 samples x 8 channels) per
+    // notification -- Myo splits its ~200Hz EMG stream across all 4.
+    // setMode()'s emg_mode must be send_emg or send_emg_raw first. Returns
+    // true only if all 4 subscriptions succeeded.
+    bool subscribeEmg(NimBLERemoteCharacteristic::notify_callback callback);
+
+    // Subscribes to IMU notifications (myohw_imu_data_t: orientation
+    // quaternion + accelerometer + gyroscope, raw units -- see
+    // MYOHW_ORIENTATION_SCALE/MYOHW_ACCELEROMETER_SCALE/MYOHW_GYROSCOPE_SCALE
+    // in myo_bluetooth.h to convert). setMode()'s imu_mode must be
+    // send_data/send_all/send_raw first. Returns false if not connected or
+    // the characteristic doesn't support notify.
+    bool subscribeImu(NimBLERemoteCharacteristic::notify_callback callback);
+
+    // Subscribes to classifier events (myohw_classifier_event_t: poses,
+    // arm sync/unsync, lock/unlock, sync failures) from
+    // ClassifierEventCharacteristic. This is indicate-only, not notify.
+    // setMode()'s classifier_mode must be enabled first. Returns false if
+    // not connected or the characteristic doesn't support indicate.
+    bool subscribeGesture(NimBLERemoteCharacteristic::notify_callback callback);
 
 private:
     class ClientCallbacks : public NimBLEClientCallbacks {
