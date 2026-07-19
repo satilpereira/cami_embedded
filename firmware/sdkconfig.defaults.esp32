@@ -1,0 +1,9 @@
+# ESP32-specific defaults.
+# The board currently in hand has 4 MB of flash (see ../TMP_DETAILS.log boot log).
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+# ESP32 classic has a combo BT/BLE controller with a mode choice that other
+# targets (esp32s3, esp32c3, ...) don't have. NimBLE only needs BLE.
+CONFIG_BTDM_CTRL_MODE_BLE_ONLY=y
+CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY=n
+CONFIG_BTDM_CTRL_MODE_BTDM=n

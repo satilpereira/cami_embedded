@@ -1,0 +1,14 @@
+# Defaults shared by every board target. Per-board overrides live in
+# sdkconfig.defaults.<target> (e.g. sdkconfig.defaults.esp32), which ESP-IDF
+# merges in automatically based on the target selected with `make board`.
+
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# BLE (NimBLE host) for the Myo armband link. NimBLE over Bluedroid for
+# footprint (see docs/requirements/ble-connectivity.md). Controller-mode
+# selection (BLE-only vs dual-mode) is chip-specific and lives in each
+# sdkconfig.defaults.<board> instead.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_BLUEDROID_ENABLED=n

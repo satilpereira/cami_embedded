@@ -1,0 +1,4 @@
+pytest
+pytest-embedded
+pytest-embedded-serial-esp
+pytest-embedded-idf

@@ -1,0 +1,4 @@
+# ESP32-S3-specific defaults, ready for whenever that board is wired up.
+# Fill in once real hardware is in hand, e.g.:
+# CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+# CONFIG_ESP_CONSOLE_USB_CDC=y   # if the board uses the native USB port for console
