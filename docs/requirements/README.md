@@ -33,29 +33,59 @@ Read order / dependency chain:
   pattern. See wifi-connectivity.md.
 - **MQTT broker**: local/self-hosted (e.g. Mosquitto on the LAN), not a cloud
   IoT platform, for v1. See mqtt-connectivity.md.
+- **MQTT wire format**: fixed binary packets, one struct per topic (one
+  topic per Myo data type: EMG/IMU/gesture/battery) — not JSON, not TLV,
+  not bit-packed. See mqtt-connectivity.md's "Wire format decision" for the
+  full rationale.
 - **Doc depth**: lightweight PRD-style (purpose, requirements, acceptance
   criteria) rather than a fully implementation-ready spec. Concrete details
   that need hands-on verification against real hardware (Myo GATT UUIDs,
   exact MQTT topic strings, etc.) are flagged as open questions rather than
   guessed.
 
-## Current hardware / project state (as of writing)
+## Current hardware / project state (updated)
 
 - Board in hand: **ESP32 (classic)**, 4 MB flash, single 2.4 GHz radio shared
   between WiFi and Bluetooth (time-multiplexed coexistence, not two radios).
-- `firmware/sdkconfig`: `CONFIG_BT_ENABLED` is **not** currently set — enabling
-  the BT/BLE stack is a prerequisite piece of work, not yet done.
+  Only 1 MB of the 4 MB is actually claimed by `firmware/partitions.csv`
+  (see below) — the rest is currently unpartitioned/unused.
+- BLE connectivity and the Myo armband integration (this doc's `ble-` and
+  `myo-armband-` requirements) are **implemented and verified against real
+  hardware** — NimBLE host stack (not Bluedroid), all 9 steps of
+  [docs/plans/myo-library-migration.md](../plans/myo-library-migration.md)
+  complete. Full technical writeup:
+  [docs/technical/firmware-implementation.md](../technical/firmware-implementation.md)
+  and [docs/technical/myo-protocol-reference.md](../technical/myo-protocol-reference.md).
+  WiFi and MQTT (this doc's other two requirements) are **not yet
+  implemented** — `firmware/app/app_main.cpp` is currently a BLE-only
+  validation harness with no network code.
 - `firmware/partitions.csv`: single 1 MB `factory` app partition, **no OTA
-  slot**. Firmware updates require a serial reflash. Adding WiFi + MQTT + BLE
-  + TLS (if ever needed) to one 1 MB image is a real size risk worth
-  tracking once implementation starts.
+  slot**. Firmware updates require a serial reflash. With the full BLE/NimBLE
+  stack linked in, the image uses ~54% of that 1 MB — comfortable for now,
+  but still worth watching once WiFi + MQTT (+ TLS, if ever added) stack on
+  top. Resizing to use more of the physical 4 MB is straightforward if
+  needed later.
 - Only the `esp32` board target is wired up in hardware; `esp32s3` is stubbed
   for later and out of scope for these docs.
 
-## Open cross-cutting question
+## Open cross-cutting question (partially resolved)
 
-The downstream consumer of the MQTT data (what actually subscribes to
-`cami/.../myo/...` and does something with it) is not yet defined. Several
-requirements below (latency targets, EMG throughput/downsampling policy)
-can't be pinned down precisely until that's known — they're marked as open
-questions in the relevant doc rather than assumed.
+Originally: "the downstream consumer of the MQTT data is not yet defined."
+That's now partially answered:
+
+- **Near-term**: a Python script subscribing to MQTT directly, for
+  ad-hoc/manual analysis of the Myo data stream. No fixed schema or
+  latency target implied by this — it's an exploratory consumer.
+- **Longer-term (planned, not yet built)**: a **second ESP32** dedicated to
+  signal processing, splitting the system into two boards — this one stays
+  BLE-only (Myo central role, per `ble-` and `myo-armband-connectivity.md`),
+  and the second board does the processing/interpretation work, presumably
+  consuming the same data this board would publish to MQTT rather than
+  doing EMG/IMU processing on this board itself.
+
+Still open: the exact division of responsibility between the two boards
+(e.g. does the Myo-side board publish raw EMG/IMU, or something
+pre-processed?), the MQTT topic/payload schema, and real latency/throughput
+targets — none of that is pinned down yet, so the requirements below still
+treat EMG throughput and downsampling policy as open questions rather than
+assuming an answer.

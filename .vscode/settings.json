@@ -6,5 +6,6 @@
     "C_Cpp.intelliSenseEngine": "disabled",
     "files.associations": {
         "*.h": "c"
-    }
+    },
+    "cmake.sourceDirectory": "/home/satil/Projects/personal/cami_embedded/firmware/config"
 }
